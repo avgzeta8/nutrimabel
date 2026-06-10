@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏥 Sistema de Pacientes - Registro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header h1::before { content: "🏥 "; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .body { padding: 30px; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .form-group label .required { color: #f44336; margin-left: 4px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); }
+        .btn-whatsapp { background: #25D366; color: white; }
+        .btn-whatsapp:hover { background: #128C7E; transform: translateY(-2px); }
+        .btn-pdf { background: #ff4757; color: white; }
+        .btn-pdf:hover { background: #e84118; transform: translateY(-2px); }
+        .btn-print { background: #2ecc71; color: white; }
+        .btn-print:hover { background: #27ae60; transform: translateY(-2px); }
+        .btn-drive { background: #4285F4; color: white; }
+        .btn-drive:hover { background: #3367D6; transform: translateY(-2px); }
+        .btn-reset { background: #95a5a6; color: white; }
+        .btn-reset:hover { background: #7f8c8d; transform: translateY(-2px); }
+        .mensaje {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+        .mensaje.success { background: #d4edda; color: #155724; display: block; }
+        .mensaje.error { background: #f8d7da; color: #721c24; display: block; }
+        .mensaje.loading { background: #e3f2fd; color: #0c5460; display: block; }
+        .resultado-registro {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 10px;
+            display: none;
+        }
+        .resultado-registro.show { display: block; }
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; gap: 0; }
+            .buttons-container { flex-direction: column; }
+            .btn { width: 100%; }
+            .body { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Registro de Pacientes</h1>
+                <p>Complete los datos del paciente y guarde en el sistema</p>
+            </div>
+            
+            <div class="body">
+                <form id="formPaciente">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre completo <span class="required">*</span></label>
+                            <input type="text" id="nombre" name="nombre" required placeholder="Ej: María González">
+                        </div>
+                        <div class="form-group">
+                            <label>Documento (DNI/CE) <span class="required">*</span></label>
+                            <input type="text" id="documento" name="documento" required placeholder="Ej: 12345678">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Teléfono <span class="required">*</span></label>
+                            <input type="tel" id="telefono" name="telefono" required placeholder="Ej: 51987654321">
+                        </div>
+                        <div class="form-group">
+                            <label>Correo electrónico</label>
+                            <input type="email" id="email" name="email" placeholder="paciente@ejemplo.com">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Médico a cargo</label>
+                            <input type="text" id="medico" name="medico" placeholder="Dr. Juan Pérez">
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de registro</label>
+                            <input type="text" id="fechaRegistro" readonly style="background: #f5f5f5;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Diagnóstico / Motivo de consulta</label>
+                        <textarea id="diagnostico" name="diagnostico" placeholder="Describa el diagnóstico o motivo de la consulta..."></textarea>
+                    </div>
+                </form>
+                
+                <div class="buttons-container">
+                    <button class="btn btn-primary" onclick="guardarYGenerarPDF()">
+                        💾 Guardar y Generar PDF
+                    </button>
+                    <button class="btn btn-pdf" onclick="generarPDF()">
+                        📄 Solo PDF
+                    </button>
+                    <button class="btn btn-print" onclick="imprimirFicha()">
+                        🖨️ Imprimir
+                    </button>
+                    <button class="btn btn-whatsapp" onclick="enviarWhatsAppConPDF()">
+                        📱 Enviar PDF por WhatsApp
+                    </button>
+                    <button class="btn btn-drive" onclick="guardarEnDrive()">
+                        ☁️ Guardar en Drive
+                    </button>
+                    <button class="btn btn-reset" onclick="resetearFormulario()">
+                        🔄 Limpiar
+                    </button>
+                </div>
+                
+                <div id="mensaje" class="mensaje"></div>
+                <div id="resultadoRegistro" class="resultado-registro"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONFIGURACIÓN - URL DE APPS SCRIPT
+        // ============================================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxO-YghUiydidxYsmWgo2ce5_E1qZJ7JZYD4ALOpKOsfWYdV-tw1-KZlzUBKWKKVdY/exec";
+        
+        // Variables para almacenar el PDF generado
+        let ultimoPDFBlob = null;
+        let ultimoPDFUrl = null;
+        let ultimoIdPaciente = null;
+        
+        // Mostrar fecha actual
+        document.getElementById('fechaRegistro').value = new Date().toLocaleString();
+        
+        // ============================================================
+        // FUNCIONES PRINCIPALES
+        // ============================================================
+        
+        function validarFormulario() {
+            const nombre = document.getElementById('nombre').value.trim();
+            const documento = document.getElementById('documento').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            
+            if (!nombre) { mostrarMensaje('❌ Ingrese el nombre completo', 'error'); return false; }
+            if (!documento) { mostrarMensaje('❌ Ingrese el documento', 'error'); return false; }
+            if (!telefono) { mostrarMensaje('❌ Ingrese el teléfono', 'error'); return false; }
+            return true;
+        }
+        
+        function obtenerDatosFormulario() {
+            return {
+                nombre: document.getElementById('nombre').value.trim(),
+                documento: document.getElementById('documento').value.trim(),
+                telefono: document.getElementById('telefono').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                diagnostico: document.getElementById('diagnostico').value.trim(),
+                medico: document.getElementById('medico').value.trim()
+            };
+        }
+        
+        async function generarPDFBlob() {
+            const datos = obtenerDatosFormulario();
+            
+            const contenidoPDF = document.createElement('div');
+            contenidoPDF.style.padding = '40px';
+            contenidoPDF.style.fontFamily = 'Arial, sans-serif';
+            contenidoPDF.style.backgroundColor = 'white';
+            contenidoPDF.innerHTML = `
+                <div style="text-align: center; border-bottom: 3px solid #667eea; padding-bottom: 20px; margin-bottom: 30px;">
+                    <h1 style="color: #667eea;">🏥 FICHA DEL PACIENTE</h1>
+                    <p style="color: #666;">Fecha: ${new Date().toLocaleString()}</p>
+                </div>
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #333; border-left: 4px solid #667eea; padding-left: 15px;">📋 DATOS PERSONALES</h3>
+                    <table style="width: 100%; margin-top: 15px; border-collapse: collapse;">
+                        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Nombre:</strong></td><td style="padding: 10px 0;">${escapeHTML(datos.nombre)}</td></tr>
+                        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Documento:</strong></td><td>${escapeHTML(datos.documento)}</td></tr>
+                        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Teléfono:</strong></td><td>${escapeHTML(datos.telefono)}</td></tr>
+                        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td><td>${escapeHTML(datos.email) || '-'}</td></tr>
+                        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Médico:</strong></td><td>${escapeHTML(datos.medico) || '-'}</td></tr>
+                    </table>
+                </div>
+                ${datos.diagnostico ? `
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #333; border-left: 4px solid #667eea; padding-left: 15px;">🩺 DIAGNÓSTICO / MOTIVO</h3>
+                    <div style="background: #f5f5f5; padding: 20px; border-radius: 10px; margin-top: 15px;">
+                        ${escapeHTML(datos.diagnostico).replace(/\n/g, '<br>')}
+                    </div>
+                </div>` : ''}
+                <div style="margin-top: 50px; text-align: center; color: #999; font-size: 12px;">
+                    Documento generado por Sistema de Gestión de Pacientes
+                </div>
+            `;
+            
+            document.body.appendChild(contenidoPDF);
+            
+            const pdfBlob = await new Promise((resolve) => {
+                html2pdf().set({ 
+                    margin: 10, 
+                    filename: `${datos.nombre.replace(/\s/g, '_')}_${Date.now()}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                }).from(contenidoPDF).output('blob').then(resolve);
+            });
+            
+            document.body.removeChild(contenidoPDF);
+            return pdfBlob;
+        }
+        
+        async function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+        
+        async function guardarYGenerarPDF() {
+            if (!validarFormulario()) return;
+            
+            mostrarMensaje('⏳ Generando y guardando...', 'loading');
+            
+            try {
+                const pdfBlob = await generarPDFBlob();
+                const base64 = await blobToBase64(pdfBlob);
+                const datos = obtenerDatosFormulario();
+                
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...datos,
+                        pdfBase64: base64.split(',')[1],
+                        pdfNombre: `${datos.nombre.replace(/\s/g, '_')}.pdf`
+                    })
+                });
+                
+                // Guardar referencia del PDF
+                ultimoPDFBlob = pdfBlob;
+                
+                mostrarMensaje('✅ Paciente registrado correctamente', 'success');
+                document.getElementById('resultadoRegistro').innerHTML = `
+                    <strong>✅ Registro exitoso</strong><br>
+                    Se ha generado la ficha del paciente.
+                `;
+                document.getElementById('resultadoRegistro').classList.add('show');
+                
+                setTimeout(() => {
+                    document.getElementById('resultadoRegistro').classList.remove('show');
+                }, 5000);
+                
+            } catch (error) {
+                mostrarMensaje('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function generarPDF() {
+            if (!validarFormulario()) return;
+            mostrarMensaje('⏳ Generando PDF...', 'loading');
+            const pdfBlob = await generarPDFBlob();
+            const url = URL.createObjectURL(pdfBlob);
+            window.open(url, '_blank');
+            mostrarMensaje('✅ PDF generado', 'success');
+        }
+        
+        // ============================================================
+        // ENVIAR WHATSAPP CON PDF (NUEVO)
+        // ============================================================
+        
+        async function enviarWhatsAppConPDF() {
+            if (!validarFormulario()) return;
+            
+            const telefono = document.getElementById('telefono').value.trim();
+            if (!telefono) {
+                mostrarMensaje('❌ Ingrese un número de teléfono', 'error');
+                return;
+            }
+            
+            mostrarMensaje('⏳ Generando PDF para enviar por WhatsApp...', 'loading');
+            
+            try {
+                // Generar el PDF
+                const pdfBlob = await generarPDFBlob();
+                const base64 = await blobToBase64(pdfBlob);
+                const datos = obtenerDatosFormulario();
+                
+                // Guardar en Drive para obtener enlace público
+                mostrarMensaje('⏳ Subiendo PDF a Drive...', 'loading');
+                
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...datos,
+                        pdfBase64: base64.split(',')[1],
+                        pdfNombre: `${datos.nombre.replace(/\s/g, '_')}.pdf`
+                    })
+                });
+                
+                // Esperar un momento para que Drive procese
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Construir mensaje de WhatsApp con enlace al PDF
+                // Nota: Como estamos en modo no-cors, no podemos obtener la respuesta directamente
+                // El enlace se guardó en la columna LINK_PDF del sheet
+                
+                let mensaje = `📋 *FICHA MÉDICA*%0A%0A`;
+                mensaje += `*Paciente:* ${datos.nombre}%0A`;
+                mensaje += `*Documento:* ${datos.documento}%0A`;
+                if (datos.diagnostico) mensaje += `*Diagnóstico:* ${datos.diagnostico.substring(0, 100)}%0A%0A`;
+                mensaje += `📄 *PDF adjunto:* El PDF se ha guardado en el sistema%0A`;
+                mensaje += `📅 *Fecha:* ${new Date().toLocaleString()}%0A%0A`;
+                mensaje += `🔗 *Ver ficha en línea:* ${SCRIPT_URL.replace('/exec', '/edit')}%0A%0A`;
+                mensaje += `---%0A`;
+                mensaje += `📱 *Contacto:* ${datos.telefono}%0A`;
+                mensaje += `👨‍⚕️ *Médico:* ${datos.medico || 'No asignado'}`;
+                
+                // Abrir WhatsApp con el mensaje
+                const telefonoLimpio = telefono.replace(/\D/g, '');
+                window.open(`https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(mensaje)}`, '_blank');
+                
+                mostrarMensaje('✅ WhatsApp abierto con el enlace del PDF', 'success');
+                ultimoPDFBlob = pdfBlob;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarMensaje('❌ Error al generar el PDF: ' + error.message, 'error');
+            }
+        }
+        
+        function imprimirFicha() {
+            if (!validarFormulario()) return;
+            const datos = obtenerDatosFormulario();
+            const ventana = window.open('', '_blank');
+            ventana.document.write(`
+                <html>
+                <head><title>Ficha ${datos.nombre}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 40px; }
+                    .header { text-align: center; border-bottom: 2px solid #667eea; padding-bottom: 20px; }
+                    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+                    td { padding: 10px; border-bottom: 1px solid #ddd; }
+                    .diagnostico { margin-top: 30px; background: #f5f5f5; padding: 20px; border-radius: 10px; }
+                </style>
+                </head>
+                <body>
+                <div class="header">
+                    <h1>🏥 FICHA DEL PACIENTE</h1>
+                    <p>Fecha: ${new Date().toLocaleString()}</p>
+                </div>
+                <table>
+                    <tr><td><strong>Nombre:</strong></td><td>${escapeHTML(datos.nombre)}</td></tr>
+                    <tr><td><strong>Documento:</strong></td><td>${escapeHTML(datos.documento)}</td></tr>
+                    <tr><td><strong>Teléfono:</strong></td><td>${escapeHTML(datos.telefono)}</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>${escapeHTML(datos.email) || '-'}</td></tr>
+                    <tr><td><strong>Médico:</strong></td><td>${escapeHTML(datos.medico) || '-'}</td></tr>
+                </table>
+                ${datos.diagnostico ? `<div class="diagnostico"><strong>🩺 Diagnóstico:</strong><br>${escapeHTML(datos.diagnostico).replace(/\n/g, '<br>')}</div>` : ''}
+                </body>
+                </html>
+            `);
+            ventana.print();
+            ventana.close();
+        }
+        
+        async function guardarEnDrive() {
+            if (!validarFormulario()) return;
+            mostrarMensaje('⏳ Generando PDF...', 'loading');
+            const pdfBlob = await generarPDFBlob();
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${obtenerDatosFormulario().nombre.replace(/\s/g, '_')}.pdf`;
+            link.click();
+            mostrarMensaje('✅ PDF guardado localmente', 'success');
+        }
+        
+        function resetearFormulario() {
+            document.getElementById('formPaciente').reset();
+            document.getElementById('fechaRegistro').value = new Date().toLocaleString();
+            mostrarMensaje('Formulario limpiado', 'success');
+        }
+        
+        function escapeHTML(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function mostrarMensaje(texto, tipo) {
+            const div = document.getElementById('mensaje');
+            div.textContent = texto;
+            div.className = `mensaje ${tipo}`;
+            setTimeout(() => { div.className = 'mensaje'; }, 4000);
+        }
+    </script>
+</body>
+</html>

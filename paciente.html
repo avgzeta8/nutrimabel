@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Visor de Pacientes - Sistema de Gestión</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header h1::before { content: "🔍 "; }
+        .header p { opacity: 0.9; }
+
+        .body { padding: 30px; }
+
+        .search-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .search-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .search-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .search-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-buscar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-buscar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-hoy {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-hoy:hover {
+            transform: translateY(-2px);
+        }
+
+        .stats {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn-refresh {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .acciones-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+            transition: transform 0.2s;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .loading-table {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .body { padding: 20px; }
+            th, td { padding: 8px 10px; font-size: 12px; }
+            .search-bar { flex-direction: column; }
+            .btn-buscar, .btn-hoy { padding: 12px; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Visor de Pacientes</h1>
+                <p>Consulte, busque y gestione los registros de pacientes</p>
+            </div>
+            
+            <div class="body">
+                <div class="search-bar">
+                    <div class="search-group">
+                        <label>🔢 Buscar por Código</label>
+                        <input type="text" id="buscarCodigo" placeholder="Ej: PAC-0001">
+                    </div>
+                    <div class="search-group">
+                        <label>👤 Buscar por Nombre</label>
+                        <input type="text" id="buscarNombre" placeholder="Nombre del paciente">
+                    </div>
+                    <button class="btn-buscar" onclick="buscarPacientes()">
+                        🔍 Buscar
+                    </button>
+                    <button class="btn-hoy" onclick="filtrarHoy()">
+                        📅 Solo los de hoy
+                    </button>
+                </div>
+                
+                <div class="stats" id="stats">
+                    <span>📊 <strong id="totalCount">0</strong> pacientes registrados</span>
+                    <span>📅 <strong id="hoyCount">0</strong> registrados hoy</span>
+                    <button class="btn-refresh" onclick="cargarPacientes()">🔄 Actualizar</button>
+                </div>
+                
+                <div class="table-container" id="tablaContainer">
+                    <div class="loading-table">
+                        <div class="spinner"></div>
+                        <p>Cargando pacientes...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONFIGURACIÓN - Usando OpenSheet (igual que tu book.html)
+        // ============================================================
+        const SHEET_ID = "1mKgNirC9r0HKrQtGHvT9ZnNuonvyTOR1BxthfCLabx8";
+        const SHEET_NAME = "bd_paciente";
+        const URL = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_NAME}`;
+        
+        let todosLosPacientes = [];
+        
+        // ============================================================
+        // CARGAR PACIENTES USANDO OPENSHEET
+        // ============================================================
+        
+        async function cargarPacientes() {
+            const container = document.getElementById('tablaContainer');
+            container.innerHTML = '<div class="loading-table"><div class="spinner"></div><p>Cargando pacientes...</p></div>';
+            
+            try {
+                console.log('Cargando desde:', URL);
+                const response = await fetch(URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Datos recibidos:', data);
+                
+                if (!data || data.length === 0) {
+                    throw new Error('No hay datos en la hoja');
+                }
+                
+                procesarDatos(data);
+                
+            } catch (error) {
+                console.error('Error detallado:', error);
+                container.innerHTML = `
+                    <div class="error-message">
+                        <strong>❌ Error al cargar datos</strong><br><br>
+                        ${error.message}<br><br>
+                        <strong>Soluciones:</strong><br>
+                        1. Comparte la hoja como: <strong>"Cualquier persona con el enlace puede ver"</strong><br>
+                        2. Verifica que el SHEET_ID sea correcto<br>
+                        3. Verifica que el SHEET_NAME sea "bd_paciente"<br><br>
+                        <a href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit" target="_blank" style="color: #667eea;">📊 Abrir Google Sheet</a>
+                    </div>
+                `;
+            }
+        }
+        
+        function procesarDatos(data) {
+            // Mapear según las columnas de la hoja
+            const pacientes = [];
+            
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                
+                // Saltar filas vacías o encabezados si es necesario
+                if (!row.ID_PACIENTE && !row.NOMBRE_COMPLETO && i === 0) {
+                    // Posiblemente es la fila de encabezados, continuar
+                    continue;
+                }
+                
+                const paciente = {
+                    id: row.ID_PACIENTE || row.id_paciente || '',
+                    fecha: row.FECHA_REGISTRO || row.fecha_registro || '',
+                    nombre: row.NOMBRE_COMPLETO || row.nombre_completo || row.nombre || '',
+                    documento: row.DOCUMENTO || row.documento || '',
+                    telefono: row.TELEFONO || row.telefono || '',
+                    email: row.EMAIL || row.email || '',
+                    diagnostico: row.DIAGNOSTICO || row.diagnostico || '',
+                    medico: row.MEDICO || row.medico || '',
+                    link_pdf: row.LINK_PDF || row.link_pdf || ''
+                };
+                
+                // Solo agregar si tiene al menos un ID o nombre
+                if (paciente.id || paciente.nombre) {
+                    pacientes.push(paciente);
+                }
+            }
+            
+            todosLosPacientes = pacientes;
+            actualizarEstadisticas();
+            renderizarTabla(pacientes);
+        }
+        
+        function actualizarEstadisticas() {
+            const hoy = new Date().toDateString();
+            const hoyCount = todosLosPacientes.filter(p => {
+                if (!p.fecha) return false;
+                const fechaPaciente = new Date(p.fecha).toDateString();
+                return fechaPaciente === hoy;
+            }).length;
+            
+            document.getElementById('totalCount').textContent = todosLosPacientes.length;
+            document.getElementById('hoyCount').textContent = hoyCount;
+        }
+        
+        function renderizarTabla(pacientes) {
+            const container = document.getElementById('tablaContainer');
+            
+            if (pacientes.length === 0) {
+                container.innerHTML = '<div class="no-results">🔍 No se encontraron pacientes con esos criterios</div>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Fecha</th>
+                            <th>Nombre</th>
+                            <th>Documento</th>
+                            <th>Teléfono</th>
+                            <th>Médico</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            pacientes.forEach(p => {
+                const fechaMostrar = p.fecha ? new Date(p.fecha).toLocaleDateString() : '-';
+                html += `
+                    <tr>
+                        <td><span class="badge">${escapeHTML(p.id)}</span></td>
+                        <td>${escapeHTML(fechaMostrar)}</td>
+                        <td><strong>${escapeHTML(p.nombre)}</strong></td>
+                        <td>${escapeHTML(p.documento)}</td>
+                        <td>${escapeHTML(p.telefono)}</td>
+                        <td>${escapeHTML(p.medico) || '-'}</td>
+                        <td class="acciones-btns">
+                            ${p.link_pdf ? `<button class="btn-icon" onclick="verPDF('${p.link_pdf}')" title="Ver PDF">📄</button>` : ''}
+                            <button class="btn-icon" onclick="enviarWhatsAppPaciente('${p.telefono}', '${escapeHTML(p.nombre)}', '${escapeHTML(p.diagnostico || '')}')" title="WhatsApp">📱</button>
+                            <button class="btn-icon" onclick="imprimirFichaPaciente('${escapeHTML(p.nombre)}', '${escapeHTML(p.documento)}', '${escapeHTML(p.telefono)}', '${escapeHTML(p.email)}', '${escapeHTML(p.medico)}', '${escapeHTML(p.diagnostico || '')}')" title="Imprimir">🖨️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        function buscarPacientes() {
+            const codigo = document.getElementById('buscarCodigo').value.trim().toLowerCase();
+            const nombre = document.getElementById('buscarNombre').value.trim().toLowerCase();
+            
+            let filtrados = [...todosLosPacientes];
+            
+            if (codigo) {
+                filtrados = filtrados.filter(p => p.id.toLowerCase().includes(codigo));
+            }
+            
+            if (nombre) {
+                filtrados = filtrados.filter(p => p.nombre.toLowerCase().includes(nombre));
+            }
+            
+            renderizarTabla(filtrados);
+        }
+        
+        function filtrarHoy() {
+            const hoy = new Date().toDateString();
+            const filtrados = todosLosPacientes.filter(p => {
+                if (!p.fecha) return false;
+                const fechaPaciente = new Date(p.fecha).toDateString();
+                return fechaPaciente === hoy;
+            });
+            
+            renderizarTabla(filtrados);
+            document.getElementById('buscarCodigo').value = '';
+            document.getElementById('buscarNombre').value = '';
+        }
+        
+        function verPDF(url) {
+            if (url) window.open(url, '_blank');
+        }
+        
+        function enviarWhatsAppPaciente(telefono, nombre, diagnostico) {
+            if (!telefono) {
+                alert('No hay número de teléfono registrado');
+                return;
+            }
+            let mensaje = `📋 *PACIENTE REGISTRADO*%0A%0A`;
+            mensaje += `*Nombre:* ${nombre}%0A`;
+            if (diagnostico) mensaje += `*Diagnóstico:* ${diagnostico}%0A`;
+            mensaje += `%0A📅 Fecha: ${new Date().toLocaleString()}`;
+            window.open(`https://wa.me/${telefono}?text=${mensaje}`, '_blank');
+        }
+        
+        function imprimirFichaPaciente(nombre, documento, telefono, email, medico, diagnostico) {
+            const ventana = window.open('', '_blank');
+            ventana.document.write(`
+                <html>
+                <head><title>Ficha ${nombre}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 40px; }
+                    .header { text-align: center; border-bottom: 2px solid #667eea; padding-bottom: 20px; }
+                    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+                    td { padding: 10px; border-bottom: 1px solid #ddd; }
+                    .diagnostico { margin-top: 30px; background: #f5f5f5; padding: 20px; border-radius: 10px; }
+                </style>
+                </head>
+                <body>
+                <div class="header">
+                    <h1>🏥 FICHA DEL PACIENTE</h1>
+                    <p>Fecha de impresión: ${new Date().toLocaleString()}</p>
+                </div>
+                <table>
+                    <tr><td><strong>Nombre:</strong></td><td>${nombre}</td></tr>
+                    <tr><td><strong>Documento:</strong></td><td>${documento}</td></tr>
+                    <tr><td><strong>Teléfono:</strong></td><td>${telefono}</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>${email || '-'}</td></tr>
+                    <tr><td><strong>Médico:</strong></td><td>${medico || '-'}</td></tr>
+                </table>
+                ${diagnostico ? `<div class="diagnostico"><strong>🩺 Diagnóstico:</strong><br>${diagnostico.replace(/\n/g, '<br>')}</div>` : ''}
+                </body>
+                </html>
+            `);
+            ventana.print();
+            ventana.close();
+        }
+        
+        function escapeHTML(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Cargar al iniciar
+        window.addEventListener('DOMContentLoaded', cargarPacientes);
+    </script>
+</body>
+</html>
